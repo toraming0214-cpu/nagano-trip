@@ -1,274 +1,468 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>나가노 크리스마스 여행</title>
-    <!-- Tailwind CSS (디자인) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons (아이콘) -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        body {
-            -webkit-tap-highlight-color: transparent;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-        /* 스크롤바 숨기기 */
-        .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-        }
-        .scrollbar-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-        /* 애니메이션 */
+import React, { useState, useEffect } from 'react';
+import { 
+  Plane, Train, Car, Hotel, MapPin, Utensils, Clock, 
+  Calendar, Coffee, Mountain, Star, ExternalLink, 
+  Edit2, Plus, Trash2, X, Save, RotateCcw, Settings
+} from 'lucide-react';
+
+// --- 초기 데이터 (Default Data) ---
+const INITIAL_DATA = [
+  {
+    day: 1,
+    date: '12/24 (화)',
+    title: '도쿄 도착 & 크리스마스 이브',
+    events: [
+      { id: 101, time: '15:50', endTime: '17:50', title: '김포공항 출발 → 하네다 도착', location: '김포공항 국제선 / 하네다 공항', mapQuery: 'Haneda Airport', type: 'flight', note: '공항 집합, 하네다 도착 후 NearMe 택시 탑승' },
+      { id: 102, time: '20:00', endTime: '', title: '호텔 체크인', location: '마루노우치 호텔', mapQuery: 'Marunouchi Hotel Tokyo', type: 'hotel', note: '모드레드 트윈 2 (조식 포함)' }
+    ]
+  },
+  {
+    day: 2,
+    date: '12/25 (수)',
+    title: '나가노로 이동 & 온천 여행',
+    events: [
+      { id: 201, time: '10:00', endTime: '', title: '체크아웃 & 도시락 구매', location: '다이마루 도쿄', mapQuery: 'Daimaru Tokyo', type: 'food', note: '도보 이동' },
+      { id: 202, time: '11:00', endTime: '', title: '뷰 골드 라운지 방문', location: '도쿄역 뷰 골드 라운지', mapQuery: 'View Gold Lounge Tokyo Station', type: 'coffee', note: '야에스 중앙구 개찰구 밖 18번' },
+      { id: 203, time: '12:04', endTime: '', title: '신칸센 탑승 (도쿄 → 나가노)', location: '도쿄역', mapQuery: 'Tokyo Station', type: 'train', note: 'QR코드 확인 필수' },
+      { id: 204, time: '14:00', endTime: '', title: '렌터카 수령', location: 'ORIX 렌터카 나가노역', mapQuery: 'Orix Rent-a-car Nagano Station', type: 'car', note: '도보 이동' },
+      { id: 205, time: '15:00', endTime: '', title: '소라 테라스 (SORA Terrace) 이동', location: 'SORA terrace', mapQuery: 'SORA terrace Nagano', type: 'mountain', note: '차량 이동 약 1시간' },
+      { id: 206, time: '16:30', endTime: '', title: '노자와 온센 이동', location: 'Nozawaonsen', mapQuery: 'Nozawaonsen', type: 'car', note: '차량 이동 40분' },
+      { id: 207, time: '18:00', endTime: '', title: '이이야마 유타키 온천', location: 'Iiyama Yutaki Onsen', mapQuery: 'Iiyama Yutaki Onsen', type: 'water', note: '노자와무라에서 차로 5분' },
+      { id: 208, time: '19:30', endTime: '', title: '에어비앤비 체크인', location: '숙소 (나가노)', mapQuery: '382-0814 Nagano', type: 'hotel', note: '차량 이동 5분' }
+    ]
+  },
+  {
+    day: 3,
+    date: '12/26 (목)',
+    title: '하쿠바 & 마츠모토 산책',
+    events: [
+      { id: 301, time: '11:00', endTime: '', title: '숙소 출발', location: '에어비앤비', mapQuery: '', type: 'car', note: '' },
+      { id: 302, time: '12:00', endTime: '', title: '휴게소 휴식', location: '미치노에키 오가와', mapQuery: 'Roadside Station Ogawa', type: 'coffee', note: '차량 이동 30분' },
+      { id: 303, time: '13:00', endTime: '', title: '하쿠바 마운틴 하버', location: 'Hakuba Iwatake Mountain Resort', mapQuery: 'Hakuba Iwatake Mountain Resort', type: 'mountain', note: '곤돌라 탑승, 차량 이동 1시간' },
+      { id: 304, time: '14:30', endTime: '', title: '하쿠바 핫포 온천 & 점심', location: 'Hakuba Happo Onsen', mapQuery: 'Hakuba Happo Onsen', type: 'water', note: '하쿠바 마을 식사' },
+      { id: 305, time: '16:30', endTime: '', title: '휴게소 휴식', location: '미치노에키 이케다', mapQuery: 'Road Station Ikeda', type: 'coffee', note: '차량 이동 45분' },
+      { id: 306, time: '17:30', endTime: '', title: '에어비앤비 체크인', location: 'Vacation Home 和BISABI', mapQuery: 'Vacation Home Wabisa-bi', type: 'hotel', note: '차량 이동 35분, 체크아웃 4시 이후' },
+      { id: 307, time: '18:00', endTime: '', title: '저녁 식사 & 쇼핑', location: 'Aeon Mall Matsumoto', mapQuery: 'Aeon Mall Matsumoto', type: 'food', note: '차량 이동 5분' }
+    ]
+  },
+  {
+    day: 4,
+    date: '12/27 (금)',
+    title: '비너스 라인 & 별보기 투어',
+    events: [
+      { id: 401, time: '10:00', endTime: '', title: '아가타노모리 공원 산책', location: 'Agatanomori Park', mapQuery: 'Agatanomori Park', type: 'map', note: '체크아웃 10시 이전' },
+      { id: 402, time: '11:30', endTime: '', title: '비너스 라인 / 코로봇쿠루 휴테', location: 'Korobokkuru Hutte', mapQuery: 'Korobokkuru Hutte', type: 'mountain', note: '차량 이동 1시간' },
+      { id: 403, time: '13:30', endTime: '', title: '휴게소 휴식', location: '스와코 서비스 에어리어', mapQuery: 'Suwako Service Area', type: 'coffee', note: '차량 이동 40분' },
+      { id: 404, time: '15:00', endTime: '', title: '료칸 체크인', location: '히루가미 온천 (Hotel Hanaya)', mapQuery: 'Hirugami Onsen Hotel Hanaya', type: 'hotel', note: '오후 5시 이후 체크인 시 사전 연락 필수' },
+      { id: 405, time: '17:00', endTime: '', title: '료칸 저녁 식사', location: 'Hotel Hanaya', mapQuery: 'Hirugami Onsen Hotel Hanaya', type: 'food', note: '' },
+      { id: 406, time: '19:00', endTime: '', title: '천공의 낙원 나이트 투어', location: 'Fujimidai Kogen Ropeway', mapQuery: 'Fujimidai Kogen Ropeway', type: 'star', note: '일본 최고의 별보기 투어 (사전 예매 필요)' }
+    ]
+  },
+  {
+    day: 5,
+    date: '12/28 (토)',
+    title: '여행 마무리 & 귀국',
+    events: [
+      { id: 501, time: '10:00', endTime: '', title: '체크아웃', location: 'Hotel Hanaya', mapQuery: 'Hirugami Onsen Hotel Hanaya', type: 'hotel', note: '조식 8시 예상' },
+      { id: 502, time: '10:30', endTime: '', title: '쿠라스와노모리 방문', location: 'Clasuwa no Mori', mapQuery: 'Clasuwa no Mori', type: 'map', note: '차량 이동 30분' },
+      { id: 503, time: '12:00', endTime: '', title: '마츠모토 성 관람', location: 'Matsumoto Castle', mapQuery: 'Matsumoto Castle', type: 'map', note: '차량 이동 1시간' },
+      { id: 504, time: '14:00', endTime: '', title: '렌터카 반납', location: 'ORIX 렌터카 나가노역', mapQuery: 'Orix Rent-a-car Nagano Station', type: 'car', note: '차량 이동 1시간' },
+      { id: 505, time: '14:26', endTime: '', title: '신칸센 탑승 (나가노 → 도쿄)', location: '나가노역', mapQuery: 'Nagano Station', type: 'train', note: '도보 5분 이동' },
+      { id: 506, time: '15:52', endTime: '', title: '도쿄역 도착', location: '도쿄역', mapQuery: 'Tokyo Station', type: 'map', note: '' },
+      { id: 507, time: '16:30', endTime: '', title: '공항 이동 (택시)', location: '야에스구치 택시 승강장', mapQuery: 'Tokyo Station Yaesu Exit', type: 'car', note: 'NearMe 택시 탑승' },
+      { id: 508, time: '20:05', endTime: '', title: '하네다 출발 → 김포 도착', location: '하네다 공항', mapQuery: 'Haneda Airport', type: 'flight', note: '안전한 귀국 되세요!' }
+    ]
+  }
+];
+
+// --- 아이콘 매핑 ---
+const ICON_TYPES = [
+  { id: 'flight', label: '비행기', icon: Plane, color: 'bg-blue-100 text-blue-600' },
+  { id: 'train', label: '기차', icon: Train, color: 'bg-green-100 text-green-600' },
+  { id: 'car', label: '차량', icon: Car, color: 'bg-orange-100 text-orange-600' },
+  { id: 'hotel', label: '숙소', icon: Hotel, color: 'bg-purple-100 text-purple-600' },
+  { id: 'food', label: '식사', icon: Utensils, color: 'bg-red-100 text-red-600' },
+  { id: 'coffee', label: '카페/휴식', icon: Coffee, color: 'bg-amber-100 text-amber-700' },
+  { id: 'mountain', label: '자연/관광', icon: Mountain, color: 'bg-emerald-100 text-emerald-600' },
+  { id: 'star', label: '별보기/밤', icon: Star, color: 'bg-yellow-100 text-yellow-600' },
+  { id: 'map', label: '장소', icon: MapPin, color: 'bg-gray-100 text-gray-600' },
+  { id: 'water', label: '온천', icon: null, custom: '♨️', color: 'bg-pink-100 text-pink-600' },
+];
+
+export default function NaganoTripAppEditable() {
+  const [activeDay, setActiveDay] = useState(1);
+  const [scheduleData, setScheduleData] = useState([]);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // 로컬 스토리지 로드
+  useEffect(() => {
+    const savedData = localStorage.getItem('naganoTripData');
+    if (savedData) {
+      setScheduleData(JSON.parse(savedData));
+    } else {
+      setScheduleData(INITIAL_DATA);
+    }
+  }, []);
+
+  // 데이터 저장
+  const saveToStorage = (newData) => {
+    setScheduleData(newData);
+    localStorage.setItem('naganoTripData', JSON.stringify(newData));
+  };
+
+  // 초기화
+  const handleReset = () => {
+    if (window.confirm('모든 변경사항을 지우고 처음 일정으로 되돌릴까요?')) {
+      saveToStorage(INITIAL_DATA);
+      setIsSettingsOpen(false);
+    }
+  };
+
+  // 장소 클릭 (구글맵)
+  const handleLocationClick = (query) => {
+    if (!query) return;
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  // 수정 모달 열기
+  const openEditModal = (event) => {
+    setEditingEvent({ ...event }); // 복사본 생성
+    setIsEditModalOpen(true);
+  };
+
+  // 새 일정 추가 모달 열기
+  const openAddModal = () => {
+    setEditingEvent({
+      id: Date.now(), // 임시 ID
+      time: '12:00',
+      endTime: '',
+      title: '새로운 일정',
+      location: '',
+      mapQuery: '',
+      type: 'map',
+      note: ''
+    });
+    setIsEditModalOpen(true);
+  };
+
+  // 일정 저장 (수정/추가)
+  const handleSaveEvent = () => {
+    const newSchedule = [...scheduleData];
+    const dayIndex = newSchedule.findIndex(d => d.day === activeDay);
+    const dayData = newSchedule[dayIndex];
+    
+    const existingEventIndex = dayData.events.findIndex(e => e.id === editingEvent.id);
+
+    if (existingEventIndex >= 0) {
+      // 수정
+      dayData.events[existingEventIndex] = editingEvent;
+    } else {
+      // 추가
+      dayData.events.push(editingEvent);
+      // 시간순 정렬
+      dayData.events.sort((a, b) => a.time.localeCompare(b.time));
+    }
+
+    newSchedule[dayIndex] = dayData;
+    saveToStorage(newSchedule);
+    setIsEditModalOpen(false);
+  };
+
+  // 일정 삭제
+  const handleDeleteEvent = () => {
+    if (!window.confirm('이 일정을 삭제하시겠습니까?')) return;
+
+    const newSchedule = [...scheduleData];
+    const dayIndex = newSchedule.findIndex(d => d.day === activeDay);
+    newSchedule[dayIndex].events = newSchedule[dayIndex].events.filter(e => e.id !== editingEvent.id);
+    
+    saveToStorage(newSchedule);
+    setIsEditModalOpen(false);
+  };
+
+  const currentSchedule = scheduleData.find(d => d.day === activeDay);
+
+  // 아이콘 렌더링 헬퍼
+  const renderIcon = (type) => {
+    const iconObj = ICON_TYPES.find(i => i.id === type) || ICON_TYPES[8]; // Default Map
+    if (iconObj.custom) return <span className="font-bold text-lg">{iconObj.custom}</span>;
+    const IconComponent = iconObj.icon;
+    return <IconComponent className="w-5 h-5" />;
+  };
+
+  const getIconColor = (type) => {
+    const iconObj = ICON_TYPES.find(i => i.id === type) || ICON_TYPES[8];
+    return iconObj.color;
+  };
+
+  if (scheduleData.length === 0) return null; // 로딩 중
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex justify-center font-sans">
+      <div className="w-full max-w-md bg-white shadow-xl overflow-hidden min-h-screen sm:min-h-0 sm:h-[850px] sm:my-8 sm:rounded-3xl flex flex-col relative">
+        
+        {/* Header */}
+        <div className="bg-slate-900 text-white p-6 pb-8 rounded-b-[2rem] shadow-lg z-10 relative">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">나가노 크리스마스 여행 🎄</h1>
+              <p className="text-slate-300 text-sm mt-1">12.24 - 12.28 (4박 5일)</p>
+            </div>
+            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
+              <Settings className="w-5 h-5 text-slate-400" />
+            </button>
+          </div>
+
+          {/* Settings Menu */}
+          {isSettingsOpen && (
+            <div className="absolute right-6 top-16 bg-white text-slate-900 p-2 rounded-lg shadow-xl z-50 text-sm">
+              <button onClick={handleReset} className="flex items-center w-full px-4 py-2 hover:bg-gray-100 rounded text-red-600">
+                <RotateCcw className="w-4 h-4 mr-2" />
+                초기 데이터로 복원
+              </button>
+            </div>
+          )}
+          
+          {/* Day Selector */}
+          <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
+            {scheduleData.map((day) => (
+              <button
+                key={day.day}
+                onClick={() => setActiveDay(day.day)}
+                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                  activeDay === day.day
+                    ? 'bg-white text-slate-900 shadow-md transform scale-105'
+                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                }`}
+              >
+                {day.day}일차
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto px-4 py-6 -mt-4 z-0 pb-20">
+          {currentSchedule && (
+            <div className="animate-fade-in-up">
+              <div className="flex items-center space-x-2 mb-6 ml-2">
+                <Calendar className="w-5 h-5 text-slate-900" />
+                <h2 className="text-lg font-bold text-gray-800">{currentSchedule.date}</h2>
+                <span className="text-sm text-gray-500 line-clamp-1">| {currentSchedule.title}</span>
+              </div>
+
+              <div className="space-y-4">
+                {currentSchedule.events.map((event, index) => (
+                  <div key={event.id} className="flex relative group">
+                    {/* Vertical Line */}
+                    {index !== currentSchedule.events.length - 1 && (
+                      <div className="absolute left-[19px] top-10 bottom-[-16px] w-0.5 bg-gray-200"></div>
+                    )}
+
+                    {/* Icon */}
+                    <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getIconColor(event.type)} shadow-sm border-2 border-white`}>
+                      {renderIcon(event.type)}
+                    </div>
+
+                    {/* Content Card */}
+                    <div className="ml-4 flex-1 bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 relative">
+                      
+                      {/* Edit Button (Visible on Hover/Touch) */}
+                      <button 
+                        onClick={() => openEditModal(event)}
+                        className="absolute top-3 right-3 p-1.5 text-gray-300 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+
+                      <div className="flex justify-between items-start mb-1 pr-6">
+                        <div className="flex items-center text-indigo-600 font-bold text-sm bg-indigo-50 px-2 py-0.5 rounded-md">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {event.time}
+                          {event.endTime && ` - ${event.endTime}`}
+                        </div>
+                      </div>
+                      
+                      <h3 className="font-bold text-gray-800 text-lg leading-tight mb-1 pr-4">
+                        {event.title}
+                      </h3>
+                      
+                      <div 
+                        onClick={() => event.mapQuery && handleLocationClick(event.mapQuery)}
+                        className={`flex items-start text-sm mb-2 group-link ${event.mapQuery ? 'cursor-pointer' : ''}`}
+                      >
+                        <MapPin className="w-3.5 h-3.5 mr-1 mt-0.5 flex-shrink-0 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                        <span className={`leading-snug ${event.mapQuery ? 'text-gray-600 group-hover:text-blue-600 group-hover:underline decoration-blue-300 underline-offset-2' : 'text-gray-500'}`}>
+                          {event.location || '장소 정보 없음'}
+                        </span>
+                        {event.mapQuery && <ExternalLink className="w-3 h-3 ml-1 mt-0.5 text-gray-300" />}
+                      </div>
+
+                      {event.note && (
+                        <div className="bg-gray-50 rounded-lg p-2 text-xs text-gray-600 mt-2 border-l-2 border-indigo-200">
+                          {event.note}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add New Event Button */}
+              <button 
+                onClick={openAddModal}
+                className="w-full mt-6 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-400 font-medium hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                일정 추가하기
+              </button>
+              
+              <div className="text-center mt-8 mb-4 text-gray-400 text-xs">
+                {activeDay === 5 ? "여행 종료! 🏠" : "오늘 일정 끝! 🌙"}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Edit/Add Modal */}
+        {isEditModalOpen && editingEvent && (
+          <div className="absolute inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white w-full sm:w-[90%] sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 max-h-[90%] overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900">
+                  {scheduleData.find(d => d.day === activeDay).events.find(e => e.id === editingEvent.id) ? '일정 수정' : '새 일정 추가'}
+                </h3>
+                <button onClick={() => setIsEditModalOpen(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Time */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">시작 시간</label>
+                    <input 
+                      type="time" 
+                      value={editingEvent.time} 
+                      onChange={(e) => setEditingEvent({...editingEvent, time: e.target.value})}
+                      className="w-full p-3 bg-gray-50 rounded-xl border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">종료 시간 (선택)</label>
+                    <input 
+                      type="time" 
+                      value={editingEvent.endTime} 
+                      onChange={(e) => setEditingEvent({...editingEvent, endTime: e.target.value})}
+                      className="w-full p-3 bg-gray-50 rounded-xl border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Title */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">일정 제목</label>
+                  <input 
+                    type="text" 
+                    value={editingEvent.title} 
+                    onChange={(e) => setEditingEvent({...editingEvent, title: e.target.value})}
+                    placeholder="예: 맛집 방문"
+                    className="w-full p-3 bg-gray-50 rounded-xl border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none font-medium"
+                  />
+                </div>
+
+                {/* Location */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">장소명</label>
+                  <input 
+                    type="text" 
+                    value={editingEvent.location} 
+                    onChange={(e) => setEditingEvent({...editingEvent, location: e.target.value})}
+                    placeholder="예: 도쿄역"
+                    className="w-full p-3 bg-gray-50 rounded-xl border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                {/* Map Query (Hidden logic for user simplicity, but editable) */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">구글지도 검색어 (자동 연결용)</label>
+                  <input 
+                    type="text" 
+                    value={editingEvent.mapQuery} 
+                    onChange={(e) => setEditingEvent({...editingEvent, mapQuery: e.target.value})}
+                    placeholder="예: Tokyo Station (영어 추천)"
+                    className="w-full p-3 bg-gray-50 rounded-xl border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                  />
+                </div>
+
+                {/* Note */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">메모</label>
+                  <textarea 
+                    value={editingEvent.note} 
+                    onChange={(e) => setEditingEvent({...editingEvent, note: e.target.value})}
+                    placeholder="준비물, 예약번호 등"
+                    rows="2"
+                    className="w-full p-3 bg-gray-50 rounded-xl border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                  />
+                </div>
+
+                {/* Type Selector */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-2">아이콘 선택</label>
+                  <div className="flex flex-wrap gap-2">
+                    {ICON_TYPES.map((type) => (
+                      <button
+                        key={type.id}
+                        onClick={() => setEditingEvent({...editingEvent, type: type.id})}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                          editingEvent.type === type.id 
+                            ? `${type.color} ring-2 ring-offset-2 ring-indigo-500 scale-110` 
+                            : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                        }`}
+                      >
+                        {type.custom ? type.custom : <type.icon className="w-5 h-5" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-3 mt-6 pt-4 border-t border-gray-100">
+                  {scheduleData.find(d => d.day === activeDay).events.find(e => e.id === editingEvent.id) && (
+                    <button 
+                      onClick={handleDeleteEvent}
+                      className="flex-1 p-3 bg-red-50 text-red-600 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-100"
+                    >
+                      <Trash2 className="w-5 h-5" /> 삭제
+                    </button>
+                  )}
+                  <button 
+                    onClick={handleSaveEvent}
+                    className="flex-[2] p-3 bg-slate-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 shadow-lg shadow-slate-200"
+                  >
+                    <Save className="w-5 h-5" /> 저장하기
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      <style>{`
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .animate-fade-in {
-            animation: fadeInUp 0.4s ease-out forwards;
-        }
-    </style>
-</head>
-<body class="bg-gray-100 min-h-screen flex justify-center items-start sm:items-center">
-
-    <!-- 앱 컨테이너 -->
-    <div class="w-full max-w-md bg-white sm:rounded-3xl shadow-xl overflow-hidden min-h-screen sm:min-h-[850px] sm:h-[850px] flex flex-col relative">
-        
-        <!-- 헤더 영역 -->
-        <div class="bg-slate-900 text-white p-6 pb-8 rounded-b-[2rem] shadow-lg z-20">
-            <div class="flex justify-between items-start mb-4">
-                <div>
-                    <h1 class="text-2xl font-bold tracking-tight">나가노 크리스마스 여행 🎄</h1>
-                    <p class="text-slate-300 text-sm mt-1">12.24 - 12.28 (4박 5일)</p>
-                </div>
-            </div>
-            
-            <!-- 날짜 선택 탭 -->
-            <div id="day-tabs" class="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
-                <!-- 탭 버튼들이 자바스크립트로 생성됩니다 -->
-            </div>
-        </div>
-
-        <!-- 컨텐츠 영역 -->
-        <div id="content-area" class="flex-1 overflow-y-auto px-4 py-6 -mt-4 z-10 bg-white sm:rounded-b-3xl">
-            <!-- 일정 목록이 여기에 표시됩니다 -->
-        </div>
-
+        .animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+        .animate-fade-in { animation: fadeInUp 0.2s ease-out forwards; }
+      `}</style>
     </div>
-
-    <script>
-        // 데이터 정의
-        const scheduleData = [
-            {
-                day: 1,
-                date: '12/24 (화)',
-                title: '도쿄 도착 & 크리스마스 이브',
-                events: [
-                    { time: '15:50', endTime: '17:50', title: '김포공항 출발 → 하네다 도착', location: '김포공항 국제선 / 하네다 공항', mapQuery: 'Haneda Airport', type: 'flight', note: '공항 집합, 하네다 도착 후 NearMe 택시 탑승' },
-                    { time: '20:00', title: '호텔 체크인', location: '마루노우치 호텔', mapQuery: 'Marunouchi Hotel Tokyo', type: 'hotel', note: '모드레드 트윈 2 (조식 포함)' }
-                ]
-            },
-            {
-                day: 2,
-                date: '12/25 (수)',
-                title: '나가노로 이동 & 온천 여행',
-                events: [
-                    { time: '10:00', title: '체크아웃 & 도시락 구매', location: '다이마루 도쿄', mapQuery: 'Daimaru Tokyo', type: 'food', note: '도보 이동' },
-                    { time: '11:00', title: '뷰 골드 라운지 방문', location: '도쿄역 뷰 골드 라운지', mapQuery: 'View Gold Lounge Tokyo Station', type: 'coffee', note: '야에스 중앙구 개찰구 밖 18번' },
-                    { time: '12:04', title: '신칸센 탑승 (도쿄 → 나가노)', location: '도쿄역', mapQuery: 'Tokyo Station', type: 'train', note: 'QR코드 확인 필수' },
-                    { time: '14:00', title: '렌터카 수령', location: 'ORIX 렌터카 나가노역', mapQuery: 'Orix Rent-a-car Nagano Station', type: 'car', note: '도보 이동' },
-                    { time: '15:00', title: '소라 테라스 (SORA Terrace) 이동', location: 'SORA terrace', mapQuery: 'SORA terrace Nagano', type: 'mountain', note: '차량 이동 약 1시간' },
-                    { time: '16:30', title: '노자와 온센 이동', location: 'Nozawaonsen', mapQuery: 'Nozawaonsen', type: 'car', note: '차량 이동 40분' },
-                    { time: '18:00', title: '이이야마 유타키 온천', location: 'Iiyama Yutaki Onsen', mapQuery: 'Iiyama Yutaki Onsen', type: 'water', note: '노자와무라에서 차로 5분' },
-                    { time: '19:30', title: '에어비앤비 체크인', location: '숙소 (나가노)', mapQuery: '382-0814 Nagano', type: 'hotel', note: '차량 이동 5분' }
-                ]
-            },
-            {
-                day: 3,
-                date: '12/26 (목)',
-                title: '하쿠바 & 마츠모토 산책',
-                events: [
-                    { time: '11:00', title: '숙소 출발', location: '에어비앤비', type: 'car', note: '' },
-                    { time: '12:00', title: '휴게소 휴식', location: '미치노에키 오가와', mapQuery: 'Roadside Station Ogawa', type: 'coffee', note: '차량 이동 30분' },
-                    { time: '13:00', title: '하쿠바 마운틴 하버', location: 'Hakuba Iwatake Mountain Resort', mapQuery: 'Hakuba Iwatake Mountain Resort', type: 'mountain', note: '곤돌라 탑승, 차량 이동 1시간' },
-                    { time: '14:30', title: '하쿠바 핫포 온천 & 점심', location: 'Hakuba Happo Onsen', mapQuery: 'Hakuba Happo Onsen', type: 'water', note: '하쿠바 마을 식사' },
-                    { time: '16:30', title: '휴게소 휴식', location: '미치노에키 이케다', mapQuery: 'Road Station Ikeda', type: 'coffee', note: '차량 이동 45분' },
-                    { time: '17:30', title: '에어비앤비 체크인', location: 'Vacation Home 和BISABI', mapQuery: 'Vacation Home Wabisa-bi', type: 'hotel', note: '차량 이동 35분, 체크아웃 4시 이후' },
-                    { time: '18:00', title: '저녁 식사 & 쇼핑', location: 'Aeon Mall Matsumoto', mapQuery: 'Aeon Mall Matsumoto', type: 'food', note: '차량 이동 5분' }
-                ]
-            },
-            {
-                day: 4,
-                date: '12/27 (금)',
-                title: '비너스 라인 & 별보기 투어',
-                events: [
-                    { time: '10:00', title: '아가타노모리 공원 산책', location: 'Agatanomori Park', mapQuery: 'Agatanomori Park', type: 'map', note: '체크아웃 10시 이전' },
-                    { time: '11:30', title: '비너스 라인 / 코로봇쿠루 휴테', location: 'Korobokkuru Hutte', mapQuery: 'Korobokkuru Hutte', type: 'mountain', note: '차량 이동 1시간' },
-                    { time: '13:30', title: '휴게소 휴식', location: '스와코 서비스 에어리어', mapQuery: 'Suwako Service Area', type: 'coffee', note: '차량 이동 40분' },
-                    { time: '15:00', title: '료칸 체크인', location: '히루가미 온천 (Hotel Hanaya)', mapQuery: 'Hirugami Onsen Hotel Hanaya', type: 'hotel', note: '오후 5시 이후 체크인 시 사전 연락 필수' },
-                    { time: '17:00', title: '료칸 저녁 식사', location: 'Hotel Hanaya', mapQuery: 'Hirugami Onsen Hotel Hanaya', type: 'food', note: '' },
-                    { time: '19:00', title: '천공의 낙원 나이트 투어', location: 'Fujimidai Kogen Ropeway', mapQuery: 'Fujimidai Kogen Ropeway', type: 'star', note: '일본 최고의 별보기 투어 (사전 예매 필요)' }
-                ]
-            },
-            {
-                day: 5,
-                date: '12/28 (토)',
-                title: '여행 마무리 & 귀국',
-                events: [
-                    { time: '10:00', title: '체크아웃', location: 'Hotel Hanaya', mapQuery: 'Hirugami Onsen Hotel Hanaya', type: 'hotel', note: '조식 8시 예상' },
-                    { time: '10:30', title: '쿠라스와노모리 방문', location: 'Clasuwa no Mori', mapQuery: 'Clasuwa no Mori', type: 'map', note: '차량 이동 30분' },
-                    { time: '12:00', title: '마츠모토 성 관람', location: 'Matsumoto Castle', mapQuery: 'Matsumoto Castle', type: 'map', note: '차량 이동 1시간' },
-                    { time: '14:00', title: '렌터카 반납', location: 'ORIX 렌터카 나가노역', mapQuery: 'Orix Rent-a-car Nagano Station', type: 'car', note: '차량 이동 1시간' },
-                    { time: '14:26', title: '신칸센 탑승 (나가노 → 도쿄)', location: '나가노역', mapQuery: 'Nagano Station', type: 'train', note: '도보 5분 이동' },
-                    { time: '15:52', title: '도쿄역 도착', location: '도쿄역', mapQuery: 'Tokyo Station', type: 'map', note: '' },
-                    { time: '16:30', title: '공항 이동 (택시)', location: '야에스구치 택시 승강장', mapQuery: 'Tokyo Station Yaesu Exit', type: 'car', note: 'NearMe 택시 탑승' },
-                    { time: '20:05', title: '하네다 출발 → 김포 도착', location: '하네다 공항', mapQuery: 'Haneda Airport', type: 'flight', note: '안전한 귀국 되세요!' }
-                ]
-            }
-        ];
-
-        let activeDay = 1;
-
-        // 아이콘 설정
-        const getIconName = (type) => {
-            switch (type) {
-                case 'flight': return 'plane';
-                case 'train': return 'train';
-                case 'car': return 'car';
-                case 'hotel': return 'hotel';
-                case 'food': return 'utensils';
-                case 'coffee': return 'coffee';
-                case 'mountain': return 'mountain';
-                case 'star': return 'star';
-                case 'water': return 'waves';
-                default: return 'map-pin';
-            }
-        };
-
-        const getIconColor = (type) => {
-            switch (type) {
-                case 'flight': return 'bg-blue-100 text-blue-600';
-                case 'train': return 'bg-green-100 text-green-600';
-                case 'car': return 'bg-orange-100 text-orange-600';
-                case 'hotel': return 'bg-purple-100 text-purple-600';
-                case 'food': return 'bg-red-100 text-red-600';
-                case 'mountain': return 'bg-emerald-100 text-emerald-600';
-                case 'star': return 'bg-yellow-100 text-yellow-600';
-                default: return 'bg-gray-100 text-gray-600';
-            }
-        };
-
-        // 탭 렌더링
-        function renderTabs() {
-            const tabsContainer = document.getElementById('day-tabs');
-            tabsContainer.innerHTML = '';
-            
-            scheduleData.forEach(day => {
-                const btn = document.createElement('button');
-                const isActive = activeDay === day.day;
-                
-                btn.className = `flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-                    isActive 
-                    ? 'bg-white text-slate-900 shadow-md transform scale-105' 
-                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                }`;
-                btn.innerText = `${day.day}일차 (${day.date.split(' ')[0]})`;
-                btn.onclick = () => {
-                    activeDay = day.day;
-                    renderTabs();
-                    renderSchedule();
-                };
-                tabsContainer.appendChild(btn);
-            });
-        }
-
-        // 일정 렌더링
-        function renderSchedule() {
-            const contentArea = document.getElementById('content-area');
-            const currentSchedule = scheduleData.find(d => d.day === activeDay);
-            
-            if (!currentSchedule) return;
-
-            // 헤더 정보
-            let html = `
-                <div class="animate-fade-in">
-                    <div class="flex items-center space-x-2 mb-6 ml-2">
-                        <i data-lucide="calendar" class="w-5 h-5 text-slate-900"></i>
-                        <h2 class="text-lg font-bold text-gray-800">${currentSchedule.date}</h2>
-                        <span class="text-sm text-gray-500">| ${currentSchedule.title}</span>
-                    </div>
-                    <div class="space-y-4">
-            `;
-
-            // 이벤트 리스트
-            currentSchedule.events.forEach((event, index) => {
-                const isLast = index === currentSchedule.events.length - 1;
-                const iconName = getIconName(event.type);
-                const iconColorClass = getIconColor(event.type);
-                const mapLink = event.mapQuery 
-                    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.mapQuery)}` 
-                    : null;
-
-                html += `
-                    <div class="flex relative group">
-                        <!-- 수직선 -->
-                        ${!isLast ? '<div class="absolute left-[19px] top-10 bottom-[-16px] w-0.5 bg-gray-200"></div>' : ''}
-
-                        <!-- 아이콘 -->
-                        <div class="relative z-10 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${iconColorClass} shadow-sm border-2 border-white">
-                            ${event.type === 'water' ? '<span class="font-bold text-xs">♨️</span>' : `<i data-lucide="${iconName}" class="w-5 h-5"></i>`}
-                        </div>
-
-                        <!-- 카드 내용 -->
-                        <div class="ml-4 flex-1 bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
-                            <div class="flex justify-between items-start mb-1">
-                                <div class="flex items-center text-indigo-600 font-bold text-sm bg-indigo-50 px-2 py-0.5 rounded-md">
-                                    <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
-                                    ${event.time}${event.endTime ? ` - ${event.endTime}` : ''}
-                                </div>
-                            </div>
-                            
-                            <h3 class="font-bold text-gray-800 text-lg leading-tight mb-1">
-                                ${event.title}
-                            </h3>
-                            
-                            <div class="flex items-start text-sm mb-2 ${mapLink ? 'cursor-pointer group-link' : ''}" 
-                                 ${mapLink ? `onclick="window.open('${mapLink}', '_blank')"` : ''}>
-                                <i data-lucide="map-pin" class="w-3.5 h-3.5 mr-1 mt-0.5 flex-shrink-0 text-gray-400 group-link-hover:text-blue-500"></i>
-                                <span class="leading-snug ${mapLink ? 'text-gray-600 hover:text-blue-600 hover:underline decoration-blue-300 underline-offset-2' : 'text-gray-500'}">
-                                    ${event.location}
-                                </span>
-                                ${mapLink ? '<i data-lucide="external-link" class="w-3 h-3 ml-1 mt-0.5 text-gray-300"></i>' : ''}
-                            </div>
-
-                            ${event.note ? `
-                                <div class="bg-gray-50 rounded-lg p-2 text-xs text-gray-600 mt-2 border-l-2 border-indigo-200">
-                                    ${event.note}
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                `;
-            });
-
-            html += `
-                    </div>
-                    <div class="text-center mt-8 mb-4 text-gray-400 text-xs">
-                        ${activeDay === 5 ? "여행 종료! 조심히 들어가세요 🏠" : "오늘 일정 끝! 🌙"}
-                    </div>
-                </div>
-            `;
-
-            contentArea.innerHTML = html;
-            lucide.createIcons(); // 아이콘 새로고침
-        }
-
-        // 초기 실행
-        renderTabs();
-        renderSchedule();
-
-    </script>
-</body>
-</html>
+  );
+}
